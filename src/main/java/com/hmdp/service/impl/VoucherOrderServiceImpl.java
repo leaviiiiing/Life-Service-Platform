@@ -12,9 +12,7 @@ import com.hmdp.utils.UserHolder;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
-import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
-import org.springframework.aop.framework.AopContext;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -50,38 +48,11 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
         SECKILL_SCRIPT.setResultType(Long.class);
     }
 
-    private class VoucherOrderHandler {
-
-        @RabbitListener(queues = RabbitMqConfig.VOUCHER_ORDER_QUEUE)
-        public void listenVoucherOrderMessage(VoucherOrder voucherOrder) {
-            try {
-                //获取队列信息 XREADGROUP
-                //改为RabbitMQ监听队列消息
-                //判断获取消息是否成功
-                if (voucherOrder == null){
-                    //获取失败，没有消息，直接返回
-                    return;
-                }
-                //解析消息中的订单消息
-                //获取成功，创建订单
-                handleVoucherOrder(voucherOrder);
-                //ACK确认 SACK streams.order g1 id
-                //RabbitMQ默认自动ACK
-
-            } catch (Exception e) {
-
-                log.error("处理订单异常",e);
-                throw e;
-            }
-
-        }
-    }
-
     //获取代理对象
     @Resource
     @Lazy
     private IVoucherOrderService proxy;
-    private void handleVoucherOrder(VoucherOrder voucherOrder){
+    public void handleVoucherOrder(VoucherOrder voucherOrder){
         Long userId = voucherOrder.getUserId();
         //创建锁对象
         //SimpleRedisLock lock = new SimpleRedisLock("order:"+userId,stringRedisTemplate);
