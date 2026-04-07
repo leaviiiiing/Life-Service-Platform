@@ -16,6 +16,9 @@ public class RabbitMqConfig {
     public static final String BLOG_FEED_EXCHANGE = "blog.feed.exchange";
     public static final String BLOG_FEED_QUEUE = "blog.feed.queue";
     public static final String BLOG_FEED_ROUTING_KEY = "blog.feed.push";
+    public static final String VOUCHER_ORDER_EXCHANGE = "voucher.order.exchange";
+    public static final String VOUCHER_ORDER_QUEUE = "voucher.order.queue";
+    public static final String VOUCHER_ORDER_ROUTING_KEY = "voucher.order.create";
 
     @Bean
     public DirectExchange blogFeedExchange() {
@@ -30,6 +33,21 @@ public class RabbitMqConfig {
     @Bean
     public Binding blogFeedBinding() {
         return BindingBuilder.bind(blogFeedQueue()).to(blogFeedExchange()).with(BLOG_FEED_ROUTING_KEY);
+    }
+
+    @Bean
+    public DirectExchange voucherOrderExchange() {
+        return new DirectExchange(VOUCHER_ORDER_EXCHANGE, true, false);
+    }
+
+    @Bean
+    public Queue voucherOrderQueue() {
+        return QueueBuilder.durable(VOUCHER_ORDER_QUEUE).build();
+    }
+
+    @Bean
+    public Binding voucherOrderBinding() {
+        return BindingBuilder.bind(voucherOrderQueue()).to(voucherOrderExchange()).with(VOUCHER_ORDER_ROUTING_KEY);
     }
 
     @Bean
