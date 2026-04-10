@@ -1,0 +1,6 @@
+.git
+.idea
+target/*.log
+deploy-package
+agent-transcripts
+terminals
