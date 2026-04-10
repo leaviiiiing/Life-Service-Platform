@@ -4,7 +4,7 @@ import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.util.BooleanUtil;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.hmdp.config.RabbitMqConfig;
+import com.hmdp.config.KafkaConfig;
 import com.hmdp.dto.BlogFeedMessage;
 import com.hmdp.dto.Result;
 import com.hmdp.dto.ScrollResult;
@@ -17,9 +17,9 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.hmdp.service.IUserService;
 import com.hmdp.utils.SystemConstants;
 import com.hmdp.utils.UserHolder;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ZSetOperations;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
@@ -40,7 +40,7 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements IB
     private StringRedisTemplate stringRedisTemplate;
 
     @Resource
-    private RabbitTemplate rabbitTemplate;
+    private KafkaTemplate<String, BlogFeedMessage> kafkaTemplate;
 
     @Override
     public Result saveBlog(Blog blog) {
@@ -54,9 +54,9 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements IB
         }
         //查询关注的粉丝
         //推送笔记id给粉丝
-        rabbitTemplate.convertAndSend(
-                RabbitMqConfig.BLOG_FEED_EXCHANGE,
-                RabbitMqConfig.BLOG_FEED_ROUTING_KEY,
+        kafkaTemplate.send(
+                KafkaConfig.BLOG_FEED_TOPIC,
+                blog.getId().toString(),
                 new BlogFeedMessage(blog.getId(), user.getId(), System.currentTimeMillis())
         );
         // 返回id

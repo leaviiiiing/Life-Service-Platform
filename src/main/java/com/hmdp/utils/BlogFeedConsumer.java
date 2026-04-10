@@ -1,11 +1,11 @@
 package com.hmdp.utils;
 
-import com.hmdp.config.RabbitMqConfig;
+import com.hmdp.config.KafkaConfig;
 import com.hmdp.dto.BlogFeedMessage;
 import com.hmdp.entity.Follow;
 import com.hmdp.service.IFollowService;
-import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Resource;
@@ -22,7 +22,7 @@ public class BlogFeedConsumer {
     @Resource
     private StringRedisTemplate stringRedisTemplate;
 
-    @RabbitListener(queues = RabbitMqConfig.BLOG_FEED_QUEUE)
+    @KafkaListener(topics = KafkaConfig.BLOG_FEED_TOPIC, groupId = "blog-feed-consumer-group")
     public void listenBlogFeed(BlogFeedMessage message) {
         List<Follow> followList = followService.lambdaQuery().eq(Follow::getFollowUserId, message.getUserId()).list();
         for (Follow follow : followList) {
