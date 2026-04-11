@@ -74,6 +74,28 @@
 - **Kafka**：`KafkaMdcHelper` 在监听线程写入 `msgId`、`kafkaTopic`、`kafkaPartition`、`kafkaOffset`（与 `KafkaMdcHelper.clear()` 成对）。
 - **日志**：`application.yaml` / `application-docker.yaml` 中 `logging.pattern.console` 增加上述 MDC 占位符，便于 grep 串联。
 
-<!-- Todo6 起仍在本文件下方追加 -->
+## Todo 6 — 端到端验收清单（手工）
+
+**状态：文档化完成（请在目标环境逐项打勾）**
+
+### 环境
+
+- [ ] `docker compose` 启动后 MySQL / Redis / Kafka / backend 均健康；已执行 `z_mq_kafka_log.sql`。
+- [ ] 后端 `SPRING_KAFKA_BOOTSTRAP_SERVERS` 与 Kafka 容器一致。
+
+### 生产 / 消费 / commit
+
+- [ ] 发笔记：`tb_mq_kafka_log` 无异常即可；关注 Feed 日志中 `msgId` 与 topic 位点。
+- [ ] 秒杀下单：消息进 `voucher.order.topic`，消费成功后 `tb_voucher_order` 有对应行；失败时 `tb_mq_kafka_log` 有 CONSUME/FAILED 或 DLT 记录，且 DLT Topic 可订阅到样例。
+- [ ] 重复消费：同一 `msgId` 第二次处理应被 Redis 幂等键跳过（日志可见 skip / 无重复订单）。
+
+### 补偿
+
+- [ ] `GET /mq/compensation/kafka/failed-logs` 能列出失败审计（白名单接口，生产需收口）。
+- [ ] 对「库中无订单、业务允许重投」的场景，`POST /mq/compensation/kafka/voucher/republish` 能再次投递且幂等键与业务约束不冲突。
+
+### 备注
+
+<!-- 若需把上述清单同步到 DEPLOY_DOCKER.md，可单独开任务引用本段 -->
 
 ---
