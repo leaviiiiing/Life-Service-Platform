@@ -64,6 +64,16 @@
 - **生产侧**：`spring.kafka.producer.properties.enable.idempotence=true`（配合已有 `acks=all`），降低 Broker 侧重复写入风险。
 - **与业务约束的关系**：秒杀订单仍依赖「一人一单」与库存 SQL；Feed 侧 ZSet 重复 add 同 score 近似幂等；补偿重投使用新 `msgId` 后缀，与首次消费键不冲突。
 
-<!-- Todo5 起仍在本文件下方追加 -->
+## Todo 5 — 可观测：traceId、msgId、位点进日志
+
+**状态：已完成**
+
+### 做了什么
+
+- **HTTP**：`TraceIdFilter` 读取请求头 `X-Trace-Id`，缺省则生成，写入 MDC 键 `traceId`。
+- **Kafka**：`KafkaMdcHelper` 在监听线程写入 `msgId`、`kafkaTopic`、`kafkaPartition`、`kafkaOffset`（与 `KafkaMdcHelper.clear()` 成对）。
+- **日志**：`application.yaml` / `application-docker.yaml` 中 `logging.pattern.console` 增加上述 MDC 占位符，便于 grep 串联。
+
+<!-- Todo6 起仍在本文件下方追加 -->
 
 ---

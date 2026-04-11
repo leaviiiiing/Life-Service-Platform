@@ -2,6 +2,7 @@ package com.hmdp.utils;
 
 import com.hmdp.entity.VoucherOrder;
 import com.hmdp.mq.kafka.KafkaConsumeIdempotencyService;
+import com.hmdp.mq.kafka.KafkaMdcHelper;
 import com.hmdp.mq.kafka.KafkaMessageHeaders;
 import com.hmdp.mq.kafka.KafkaTopics;
 import com.hmdp.service.MqKafkaLogService;
@@ -49,6 +50,7 @@ public class VoucherOrderKafkaListener {
         if (msgId == null) {
             msgId = KafkaConsumeIdempotencyService.fallbackMsgId(record.topic(), record.partition(), record.offset());
         }
+        KafkaMdcHelper.put(record, msgId);
         try {
             if (voucherOrder == null) {
                 ack.acknowledge();
@@ -84,6 +86,8 @@ public class VoucherOrderKafkaListener {
                 log.error("发送 DLT 失败", ex);
             }
             ack.acknowledge();
+        } finally {
+            KafkaMdcHelper.clear();
         }
     }
 

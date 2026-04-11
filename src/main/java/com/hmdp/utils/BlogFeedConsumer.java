@@ -4,6 +4,7 @@ import com.hmdp.config.KafkaConfig;
 import com.hmdp.dto.BlogFeedMessage;
 import com.hmdp.entity.Follow;
 import com.hmdp.mq.kafka.KafkaConsumeIdempotencyService;
+import com.hmdp.mq.kafka.KafkaMdcHelper;
 import com.hmdp.mq.kafka.KafkaMessageHeaders;
 import com.hmdp.service.IFollowService;
 import lombok.extern.slf4j.Slf4j;
@@ -43,6 +44,7 @@ public class BlogFeedConsumer {
         if (msgId == null) {
             msgId = KafkaConsumeIdempotencyService.fallbackMsgId(record.topic(), record.partition(), record.offset());
         }
+        KafkaMdcHelper.put(record, msgId);
         try {
             if (message == null) {
                 ack.acknowledge();
@@ -64,6 +66,8 @@ public class BlogFeedConsumer {
             // 坏消息先 ack 避免堵分区；生产可配合 DLT（本阶段仅打日志）
             log.error("Feed 消费异常 blogId={}", message != null ? message.getBlogId() : null, e);
             ack.acknowledge();
+        } finally {
+            KafkaMdcHelper.clear();
         }
     }
 

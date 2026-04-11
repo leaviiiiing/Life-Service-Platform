@@ -47,3 +47,5 @@ logging:
     com.hmdp: debug
   pattern:
     dateformat: mm:ss.SSS
+    # traceId=HTTP；msgId/kafka*=Kafka 监听线程（与计划书 observability 字段对齐）
+    console: "%d{mm:ss.SSS} [%thread] [%X{traceId:-}] [%X{msgId:-}] [%X{kafkaTopic:-}:%X{kafkaPartition:-}@%X{kafkaOffset:-}] %level %logger - %msg%n"

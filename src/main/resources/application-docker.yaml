@@ -46,3 +46,4 @@ logging:
     com.hmdp: info
   pattern:
     dateformat: mm:ss.SSS
+    console: "%d{mm:ss.SSS} [%thread] [%X{traceId:-}] [%X{msgId:-}] [%X{kafkaTopic:-}:%X{kafkaPartition:-}@%X{kafkaOffset:-}] %level %logger - %msg%n"
