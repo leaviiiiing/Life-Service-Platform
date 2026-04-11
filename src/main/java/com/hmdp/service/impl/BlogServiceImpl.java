@@ -6,6 +6,7 @@ import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.hmdp.config.KafkaConfig;
 import com.hmdp.dto.BlogFeedMessage;
+import com.hmdp.mq.kafka.KafkaMessageHeaders;
 import com.hmdp.dto.Result;
 import com.hmdp.dto.ScrollResult;
 import com.hmdp.dto.UserDTO;
@@ -19,11 +20,13 @@ import com.hmdp.utils.SystemConstants;
 import com.hmdp.utils.UserHolder;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ZSetOperations;
+import org.apache.kafka.clients.producer.ProducerRecord;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
 import java.util.*;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import static com.hmdp.utils.RedisConstants.BLOG_LIKED_KEY;
@@ -54,11 +57,16 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements IB
         }
         //查询关注的粉丝
         //推送笔记id给粉丝
-        kafkaTemplate.send(
+        // Feed 消息头 MSG_ID，与 Todo1 约定一致
+        String msgId = "BLOG_FEED:" + blog.getId() + ":" + UUID.randomUUID().toString().replace("-", "");
+        BlogFeedMessage payload = new BlogFeedMessage(blog.getId(), user.getId(), System.currentTimeMillis());
+        ProducerRecord<String, BlogFeedMessage> record = new ProducerRecord<>(
                 KafkaConfig.BLOG_FEED_TOPIC,
                 blog.getId().toString(),
-                new BlogFeedMessage(blog.getId(), user.getId(), System.currentTimeMillis())
+                payload
         );
+        record.headers().add(KafkaMessageHeaders.MSG_ID, KafkaMessageHeaders.msgIdBytes(msgId));
+        kafkaTemplate.send(record);
         // 返回id
         return Result.ok(blog.getId());
     }

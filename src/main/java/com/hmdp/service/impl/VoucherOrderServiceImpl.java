@@ -6,14 +6,17 @@ import com.hmdp.mapper.VoucherOrderMapper;
 import com.hmdp.service.ISeckillVoucherService;
 import com.hmdp.service.IVoucherOrderService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.hmdp.config.RabbitMqConfig;
+import com.hmdp.mq.kafka.KafkaMessageHeaders;
+import com.hmdp.mq.kafka.KafkaTopics;
+import com.hmdp.service.MqKafkaLogService;
 import com.hmdp.utils.RedisIdWorker;
 import com.hmdp.utils.UserHolder;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.apache.kafka.clients.producer.ProducerRecord;
 import org.springframework.context.annotation.Lazy;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
@@ -21,10 +24,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import javax.annotation.Resource;
 import java.util.Collections;
+import java.util.UUID;
 
 @Slf4j
 @Service
 public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, VoucherOrder> implements IVoucherOrderService {
+
+    private static final String BIZ_VOUCHER = "VOUCHER_ORDER";
 
     @Resource
     private ISeckillVoucherService seckillVoucherService ;
@@ -39,7 +45,10 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
     private RedissonClient redissonClient;
 
     @Resource
-    private RabbitTemplate rabbitTemplate;
+    private KafkaTemplate<String, Object> kafkaTemplate;
+
+    @Resource
+    private MqKafkaLogService mqKafkaLogService;
 
     private static final DefaultRedisScript<Long> SECKILL_SCRIPT;
     static{
@@ -117,17 +126,28 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
             return Result.fail(result==1?"库存不足！":"无法重复下单！");
         }
 
-        //发送消息到队列
+        //发送消息到 Kafka（原 RabbitMQ 队列已移除）
         VoucherOrder voucherOrder = new VoucherOrder();
         voucherOrder.setId(orderId);
         voucherOrder.setUserId(userId);
         voucherOrder.setVoucherId(voucherId);
-        rabbitTemplate.convertAndSend(
-                RabbitMqConfig.VOUCHER_ORDER_EXCHANGE,
-                RabbitMqConfig.VOUCHER_ORDER_ROUTING_KEY,
+        String msgId = BIZ_VOUCHER + ":" + orderId + ":" + UUID.randomUUID().toString().replace("-", "");
+        ProducerRecord<String, Object> record = new ProducerRecord<>(
+                KafkaTopics.VOUCHER_ORDER,
+                String.valueOf(userId),
                 voucherOrder
         );
-
+        record.headers().add(KafkaMessageHeaders.MSG_ID, KafkaMessageHeaders.msgIdBytes(msgId));
+        kafkaTemplate.send(record).addCallback(
+                result -> { /* 成功不落库，失败与消费侧见 MqKafkaLog */ },
+                ex -> mqKafkaLogService.logSendFailed(
+                        msgId,
+                        BIZ_VOUCHER,
+                        String.valueOf(orderId),
+                        KafkaTopics.VOUCHER_ORDER,
+                        ex != null ? ex.getMessage() : "send failed"
+                )
+        );
 
         return Result.ok(orderId);
     }

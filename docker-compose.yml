@@ -35,24 +35,6 @@ services:
       timeout: 5s
       retries: 20
 
-  rabbitmq:
-    image: rabbitmq:3.12-management
-    container_name: lsp-rabbitmq
-    restart: unless-stopped
-    environment:
-      RABBITMQ_DEFAULT_USER: root
-      RABBITMQ_DEFAULT_PASS: 123456
-    ports:
-      - "5672:5672"
-      - "15672:15672"
-    volumes:
-      - ./deploy/rabbitmq/data:/var/lib/rabbitmq
-    healthcheck:
-      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 20
-
   kafka:
     image: bitnami/kafka:3.6
     container_name: lsp-kafka
@@ -90,10 +72,6 @@ services:
       SPRING_REDIS_HOST: redis
       SPRING_REDIS_PORT: 6379
       SPRING_REDIS_PASSWORD: 123456
-      SPRING_RABBITMQ_HOST: rabbitmq
-      SPRING_RABBITMQ_PORT: 5672
-      SPRING_RABBITMQ_USERNAME: root
-      SPRING_RABBITMQ_PASSWORD: 123456
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       MYSQL_HOST: mysql
       MYSQL_PORT: 3306
@@ -103,10 +81,6 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_PASSWORD: 123456
-      RABBITMQ_HOST: rabbitmq
-      RABBITMQ_PORT: 5672
-      RABBITMQ_USERNAME: root
-      RABBITMQ_PASSWORD: 123456
       TZ: Asia/Shanghai
     ports:
       - "8081:8081"
@@ -114,8 +88,6 @@ services:
       mysql:
         condition: service_healthy
       redis:
-        condition: service_healthy
-      rabbitmq:
         condition: service_healthy
       kafka:
         condition: service_healthy
