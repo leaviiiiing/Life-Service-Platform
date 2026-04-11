@@ -1,7 +1,7 @@
 services:
   mysql:
     image: mysql:8.0
-    container_name: hmdp-mysql
+    container_name: lsp-mysql
     restart: unless-stopped
     environment:
       MYSQL_ROOT_PASSWORD: 123456
@@ -22,7 +22,7 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: hmdp-redis
+    container_name: lsp-redis
     restart: unless-stopped
     command: ["redis-server", "--requirepass", "123456"]
     ports:
@@ -37,7 +37,7 @@ services:
 
   rabbitmq:
     image: rabbitmq:3.12-management
-    container_name: hmdp-rabbitmq
+    container_name: lsp-rabbitmq
     restart: unless-stopped
     environment:
       RABBITMQ_DEFAULT_USER: root
@@ -55,7 +55,7 @@ services:
 
   kafka:
     image: bitnami/kafka:3.6
-    container_name: hmdp-kafka
+    container_name: lsp-kafka
     restart: unless-stopped
     environment:
       KAFKA_CFG_NODE_ID: 1
@@ -81,7 +81,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: hmdp-backend
+    container_name: lsp-backend
     restart: unless-stopped
     environment:
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/hmdp?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
@@ -122,7 +122,7 @@ services:
 
   frontend:
     image: nginx:1.27-alpine
-    container_name: hmdp-frontend
+    container_name: lsp-frontend
     restart: unless-stopped
     ports:
       - "80:80"

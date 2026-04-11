@@ -2,7 +2,7 @@
 set -eu
 
 ROOT_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
-BUNDLE_NAME="hmdp-docker-bundle"
+BUNDLE_NAME="life-service-platform-docker"
 OUTPUT_DIR="${ROOT_DIR}/release"
 WORK_DIR="${OUTPUT_DIR}/${BUNDLE_NAME}"
 
@@ -14,7 +14,7 @@ cp "${ROOT_DIR}/docker-compose.yml" "${WORK_DIR}/"
 cp "${ROOT_DIR}/.dockerignore" "${WORK_DIR}/"
 
 mkdir -p "${WORK_DIR}/target"
-cp "${ROOT_DIR}/target/hm-dianping-0.0.1-SNAPSHOT.jar" "${WORK_DIR}/target/"
+cp "${ROOT_DIR}/target/life-service-platform-0.0.1-SNAPSHOT.jar" "${WORK_DIR}/target/"
 
 mkdir -p "${WORK_DIR}/src/main/resources"
 cp -r "${ROOT_DIR}/src/main/resources/db" "${WORK_DIR}/src/main/resources/"

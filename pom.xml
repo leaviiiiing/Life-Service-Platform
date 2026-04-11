@@ -9,10 +9,10 @@
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
     <groupId>com.hmdp</groupId>
-    <artifactId>hm-dianping</artifactId>
+    <artifactId>life-service-platform</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>hm-dianping</name>
-    <description>Demo project for Spring Boot</description>
+    <name>Life-Service-Platform</name>
+    <description>Life-Service-Platform — local life services demo (shops, blogs, vouchers)</description>
     <properties>
         <java.version>1.8</java.version>
     </properties>

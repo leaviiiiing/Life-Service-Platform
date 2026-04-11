@@ -2,7 +2,7 @@ FROM eclipse-temurin:8-jre
 
 WORKDIR /app
 
-COPY target/hm-dianping-0.0.1-SNAPSHOT.jar app.jar
+COPY target/life-service-platform-0.0.1-SNAPSHOT.jar app.jar
 
 EXPOSE 8081
 

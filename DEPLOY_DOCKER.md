@@ -1,13 +1,13 @@
-# HMDP Docker 一键部署
+# Life-Service-Platform Docker 一键部署
 
 ## 1. Linux 服务器部署
 
-1. 上传 `hmdp-docker-bundle.tar.gz` 到 Linux
+1. 上传 `life-service-platform-docker.tar.gz` 到 Linux
 2. 解压并进入目录：
 
 ```bash
-tar -xzf hmdp-docker-bundle.tar.gz
-cd hmdp-docker-bundle
+tar -xzf life-service-platform-docker.tar.gz
+cd life-service-platform-docker
 ```
 
 3. 一键启动：
