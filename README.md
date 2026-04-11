@@ -75,6 +75,3 @@ java -jar target/life-service-platform-0.0.1-SNAPSHOT.jar
 
 示例中的数据库、Redis、RabbitMQ 默认密码仅用于学习与本地/测试环境，**上线前务必在 `docker-compose.yml` 或配置中心中修改为强口令**。
 
-## 许可证
-
-教学示例项目，使用与修改请遵循课程或团队约定。
