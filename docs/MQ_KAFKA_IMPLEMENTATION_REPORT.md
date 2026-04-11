@@ -41,3 +41,19 @@
 <!-- Todo3 起仍在本文件下方追加 -->
 
 ---
+
+## Todo 3 — 补偿：回查接口与定时巡检
+
+**状态：已完成**
+
+### 做了什么
+
+- **内部 HTTP**（已加入 `MvcConfig` 拦截器白名单，生产请改鉴权/内网）：  
+  - `GET /mq/compensation/kafka/failed-logs?limit=20`：按时间倒序查看 `tb_mq_kafka_log` 中 `FAILED` 记录。  
+  - `POST /mq/compensation/kafka/voucher/republish`： body 为 `orderId` / `userId` / `voucherId`；若 `tb_voucher_order` 已存在该 `orderId` 则拒绝，否则按与秒杀相同方式带 `MSG_ID` 重投 `KafkaTopics.VOUCHER_ORDER`，发送失败写入审计表。
+- **定时任务**：`MqKafkaCompensationScheduler` 默认每 5 分钟（`mq.compensation.scan-ms`，见 `application.yaml`）打 WARN 日志输出当前库内「消费失败」「DLT」条数，**不自动重投**，避免误补偿；人工结合 Todo3 接口与业务表决策。
+- **闭环说明**：补偿依赖「已知三键」重投；全量自动对照 offset 需额外流水，留作后续治理增强。
+
+<!-- Todo4 起仍在本文件下方追加 -->
+
+---

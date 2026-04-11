@@ -36,6 +36,9 @@ spring:
     default-property-inclusion: non_null
 mybatis-plus:
   type-aliases-package: com.hmdp.entity
+mq:
+  compensation:
+    scan-ms: 300000
 logging:
   level:
     com.hmdp: info
