@@ -32,6 +32,8 @@ spring:
       retries: 3
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        enable.idempotence: true
   jackson:
     default-property-inclusion: non_null
 mybatis-plus:

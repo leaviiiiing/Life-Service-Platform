@@ -54,6 +54,16 @@
 - **定时任务**：`MqKafkaCompensationScheduler` 默认每 5 分钟（`mq.compensation.scan-ms`，见 `application.yaml`）打 WARN 日志输出当前库内「消费失败」「DLT」条数，**不自动重投**，避免误补偿；人工结合 Todo3 接口与业务表决策。
 - **闭环说明**：补偿依赖「已知三键」重投；全量自动对照 offset 需额外流水，留作后续治理增强。
 
-<!-- Todo4 起仍在本文件下方追加 -->
+## Todo 4 — 幂等：消费去重与生产者幂等
+
+**状态：已完成**
+
+### 做了什么
+
+- **消费侧**：`KafkaConsumeIdempotencyService` 使用 Redis 键 `mq:kafka:consumed:{msgId}`，**业务成功后** `markProcessed`；进入时若 `alreadyProcessed` 则直接 ack 跳过。`msgId` 缺省时用 `topic:partition:offset` 兜底。已接入 `VoucherOrderKafkaListener`、`BlogFeedConsumer`。
+- **生产侧**：`spring.kafka.producer.properties.enable.idempotence=true`（配合已有 `acks=all`），降低 Broker 侧重复写入风险。
+- **与业务约束的关系**：秒杀订单仍依赖「一人一单」与库存 SQL；Feed 侧 ZSet 重复 add 同 score 近似幂等；补偿重投使用新 `msgId` 后缀，与首次消费键不冲突。
+
+<!-- Todo5 起仍在本文件下方追加 -->
 
 ---

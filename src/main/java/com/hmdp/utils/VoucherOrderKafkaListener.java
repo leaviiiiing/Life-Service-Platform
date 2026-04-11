@@ -1,6 +1,7 @@
 package com.hmdp.utils;
 
 import com.hmdp.entity.VoucherOrder;
+import com.hmdp.mq.kafka.KafkaConsumeIdempotencyService;
 import com.hmdp.mq.kafka.KafkaMessageHeaders;
 import com.hmdp.mq.kafka.KafkaTopics;
 import com.hmdp.service.MqKafkaLogService;
@@ -34,6 +35,9 @@ public class VoucherOrderKafkaListener {
     @Resource
     private MqKafkaLogService mqKafkaLogService;
 
+    @Resource
+    private KafkaConsumeIdempotencyService kafkaConsumeIdempotencyService;
+
     @KafkaListener(
             topics = KafkaTopics.VOUCHER_ORDER,
             groupId = "voucher-order-consumer-group",
@@ -42,13 +46,22 @@ public class VoucherOrderKafkaListener {
     public void listenVoucherOrder(ConsumerRecord<String, VoucherOrder> record, Acknowledgment ack) {
         VoucherOrder voucherOrder = record.value();
         String msgId = extractMsgId(record);
+        if (msgId == null) {
+            msgId = KafkaConsumeIdempotencyService.fallbackMsgId(record.topic(), record.partition(), record.offset());
+        }
         try {
             if (voucherOrder == null) {
                 ack.acknowledge();
                 return;
             }
+            if (kafkaConsumeIdempotencyService.alreadyProcessed(msgId)) {
+                log.debug("跳过重复消息 msgId={}", msgId);
+                ack.acknowledge();
+                return;
+            }
             // 创建订单（内部一人一单与库存）
             voucherOrderService.handleVoucherOrder(voucherOrder);
+            kafkaConsumeIdempotencyService.markProcessed(msgId);
             ack.acknowledge();
         } catch (Exception e) {
             log.error("Kafka 消费秒杀订单异常 msgId={}", msgId, e);
