@@ -28,7 +28,7 @@
 ### 做了什么
 
 - **手动 ack**：`KafkaListenerConfig` 提供 `manualKafkaListenerContainerFactory`（`MANUAL_IMMEDIATE`），`BlogFeedConsumer` 与 `VoucherOrderKafkaListener` 均显式 `containerFactory` 绑定，业务结束后 `ack.acknowledge()`。
-- **秒杀链路迁 Kafka**：`VoucherOrderServiceImpl` 使用 `KafkaTemplate` + `ProducerRecord`，头 `MSG_ID`；`VoucherOrderKafkaListener` 消费 `KafkaTopics.VOUCHER_ORDER`，异常时写 `tb_mq_kafka_log`、再发到 `KafkaTopics.VOUCHER_ORDER_DLT` 后仍 ack，避免无限重试堵分区。
+- **秒杀链路迁 Kafka**：`VoucherOrderServiceImpl` 使用 `KafkaTemplate` + `ProducerRecord`，头 `MSG_ID` + `IDEMPOTENT_KEY`（首次与 msgId 相同）；`VoucherOrderKafkaListener` 同时订阅 `KafkaTopics.VOUCHER_ORDER` 与 `KafkaTopics.VOUCHER_ORDER_RETRY`：失败时若 `RETRY_COUNT` 小于 2 则带新 `MSG_ID` 发往重试 Topic，否则写 `tb_mq_kafka_log` 并投递 `KafkaTopics.VOUCHER_ORDER_DLT`，最后均 ack，避免无限重试堵分区。
 - **Feed**：`BlogServiceImpl` 发送时带头 `MSG_ID`；`BlogFeedConsumer` 走同一手动 ack 工厂。
 - **落库脚本**：`src/main/resources/db/z_mq_kafka_log.sql`（表 `tb_mq_kafka_log`）；实体 `MqKafkaLog`、Mapper、`MqKafkaLogService`。
 - **依赖与部署**：`pom.xml` 去掉 `spring-boot-starter-amqp`；删除 `RabbitMqConfig`、`VoucherOrderListener`；`application.yaml` / `application-docker.yaml` 去掉 `spring.rabbitmq`，Kafka `producer.acks=all`、`retries=3`，`trusted.packages` 含 `com.hmdp.entity`；根目录 `docker-compose.yml` 去掉 `rabbitmq` 服务及 backend 相关环境变量与 `depends_on`。
@@ -60,7 +60,9 @@
 
 ### 做了什么
 
-- **消费侧**：`KafkaConsumeIdempotencyService` 使用 Redis 键 `mq:kafka:consumed:{msgId}`，**业务成功后** `markProcessed`；进入时若 `alreadyProcessed` 则直接 ack 跳过。`msgId` 缺省时用 `topic:partition:offset` 兜底。已接入 `VoucherOrderKafkaListener`、`BlogFeedConsumer`。
+- **消费侧**：`KafkaConsumeIdempotencyService` 使用 Redis 键 `mq:kafka:consumed:{idempotentKey}`，**业务成功后** `markProcessed`；进入时若 `alreadyProcessed` 则直接 ack 跳过。`IDEMPOTENT_KEY` 头优先（与重试时变更的 `MSG_ID` 解耦）。`msgId` 缺省时用 `topic:partition:offset` 兜底。已接入 `VoucherOrderKafkaListener`、`BlogFeedConsumer`。
+- **HTTP 秒杀**：支持请求头 `Idempotency-Key`，Redis 键 `seckill:idem:{userId}:{voucherId}:{md5(key)}` 存已受理 `orderId`，24h 内重复请求返回同一订单号。
+- **DB 唯一（可选）**：`src/main/resources/db/z_voucher_order_unique.sql` 提供 `(user_id, voucher_id)` 唯一索引示例脚本（需无重复数据后再执行）。
 - **生产侧**：`spring.kafka.producer.properties.enable.idempotence=true`（配合已有 `acks=all`），降低 Broker 侧重复写入风险。
 - **与业务约束的关系**：秒杀订单仍依赖「一人一单」与库存 SQL；Feed 侧 ZSet 重复 add 同 score 近似幂等；补偿重投使用新 `msgId` 后缀，与首次消费键不冲突。
 
@@ -71,7 +73,7 @@
 ### 做了什么
 
 - **HTTP**：`TraceIdFilter` 读取请求头 `X-Trace-Id`，缺省则生成，写入 MDC 键 `traceId`。
-- **Kafka**：`KafkaMdcHelper` 在监听线程写入 `msgId`、`kafkaTopic`、`kafkaPartition`、`kafkaOffset`（与 `KafkaMdcHelper.clear()` 成对）。
+- **Kafka**：`KafkaMdcHelper` 在监听线程写入 `msgId`、`idempotentKey`、`retryCount`、`kafkaTopic`、`kafkaPartition`、`kafkaOffset`（与 `KafkaMdcHelper.clear()` 成对）。
 - **日志**：`application.yaml` / `application-docker.yaml` 中 `logging.pattern.console` 增加上述 MDC 占位符，便于 grep 串联。
 
 ## Todo 6 — 端到端验收清单（手工）
@@ -86,7 +88,7 @@
 ### 生产 / 消费 / commit
 
 - [ ] 发笔记：`tb_mq_kafka_log` 无异常即可；关注 Feed 日志中 `msgId` 与 topic 位点。
-- [ ] 秒杀下单：消息进 `voucher.order.topic`，消费成功后 `tb_voucher_order` 有对应行；失败时 `tb_mq_kafka_log` 有 CONSUME/FAILED 或 DLT 记录，且 DLT Topic 可订阅到样例。
+- [ ] 秒杀下单：消息进 `voucher.order.topic`，消费成功后 `tb_voucher_order` 有对应行；连续失败时先见 `voucher.order.retry` 再 DLT；`tb_mq_kafka_log` 有对应记录；带 `Idempotency-Key` 重复 POST 返回同一 `orderId`。
 - [ ] 重复消费：同一 `msgId` 第二次处理应被 Redis 幂等键跳过（日志可见 skip / 无重复订单）。
 
 ### 补偿

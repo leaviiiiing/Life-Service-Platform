@@ -47,12 +47,14 @@ public class MqKafkaCompensationService {
         voucherOrder.setVoucherId(voucherId);
         String msgId = BIZ_VOUCHER + ":" + orderId + ":" + UUID.randomUUID().toString().replace("-", "")
                 + ":comp";
+        String idempotentKey = BIZ_VOUCHER + ":" + orderId + ":comp";
         ProducerRecord<String, Object> record = new ProducerRecord<>(
                 KafkaTopics.VOUCHER_ORDER,
                 String.valueOf(userId),
                 voucherOrder
         );
         record.headers().add(KafkaMessageHeaders.MSG_ID, KafkaMessageHeaders.msgIdBytes(msgId));
+        record.headers().add(KafkaMessageHeaders.IDEMPOTENT_KEY, KafkaMessageHeaders.msgIdBytes(idempotentKey));
         kafkaTemplate.send(record).addCallback(
                 r -> { },
                 ex -> mqKafkaLogService.logSendFailed(

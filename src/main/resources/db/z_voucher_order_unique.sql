@@ -1,0 +1,5 @@
+-- 一人一单 DB 层兜底（与计划书「必要时的表唯一约束」一致）
+-- 若存量数据存在同一 user_id + voucher_id 多行，请先清洗再执行。
+-- USE hmdp;
+-- ALTER TABLE tb_voucher_order
+--   ADD UNIQUE INDEX uk_user_voucher (user_id, voucher_id);

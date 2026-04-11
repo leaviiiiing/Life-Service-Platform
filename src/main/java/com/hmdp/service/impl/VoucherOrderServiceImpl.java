@@ -9,6 +9,8 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.hmdp.mq.kafka.KafkaMessageHeaders;
 import com.hmdp.mq.kafka.KafkaTopics;
 import com.hmdp.service.MqKafkaLogService;
+import cn.hutool.core.util.StrUtil;
+import cn.hutool.crypto.digest.DigestUtil;
 import com.hmdp.utils.RedisIdWorker;
 import com.hmdp.utils.UserHolder;
 import lombok.extern.slf4j.Slf4j;
@@ -25,6 +27,9 @@ import org.springframework.transaction.annotation.Transactional;
 import javax.annotation.Resource;
 import java.util.Collections;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+
+import static com.hmdp.utils.RedisConstants.SECKILL_IDEM_KEY;
 
 @Slf4j
 @Service
@@ -110,9 +115,21 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
     }
 
     @Override
-    public Result seckillVoucher(Long voucherId) {
+    public Result seckillVoucher(Long voucherId, String idempotencyKey) {
         //获取用户
         Long userId = UserHolder.getUser().getId();
+        // HTTP 幂等：相同 Idempotency-Key 返回已受理的 orderId（与计划书「重复请求稳定结果」一致）
+        if (StrUtil.isNotBlank(idempotencyKey)) {
+            String idemRedisKey = SECKILL_IDEM_KEY + userId + ":" + voucherId + ":" + DigestUtil.md5Hex(idempotencyKey);
+            String cached = stringRedisTemplate.opsForValue().get(idemRedisKey);
+            if (StrUtil.isNotBlank(cached)) {
+                try {
+                    return Result.ok(Long.parseLong(cached));
+                } catch (NumberFormatException e) {
+                    log.warn("幂等键缓存非数字 key={}", idemRedisKey);
+                }
+            }
+        }
         //获取订单ID
         long orderId = redisIdWorker.nextId("order");
         //执行lua脚本
@@ -138,6 +155,7 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
                 voucherOrder
         );
         record.headers().add(KafkaMessageHeaders.MSG_ID, KafkaMessageHeaders.msgIdBytes(msgId));
+        record.headers().add(KafkaMessageHeaders.IDEMPOTENT_KEY, KafkaMessageHeaders.msgIdBytes(msgId));
         kafkaTemplate.send(record).addCallback(
                 result -> { /* 成功不落库，失败与消费侧见 MqKafkaLog */ },
                 ex -> mqKafkaLogService.logSendFailed(
@@ -148,6 +166,11 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
                         ex != null ? ex.getMessage() : "send failed"
                 )
         );
+
+        if (StrUtil.isNotBlank(idempotencyKey)) {
+            String idemRedisKey = SECKILL_IDEM_KEY + userId + ":" + voucherId + ":" + DigestUtil.md5Hex(idempotencyKey);
+            stringRedisTemplate.opsForValue().set(idemRedisKey, String.valueOf(orderId), 24, TimeUnit.HOURS);
+        }
 
         return Result.ok(orderId);
     }

@@ -44,13 +44,17 @@ public class BlogFeedConsumer {
         if (msgId == null) {
             msgId = KafkaConsumeIdempotencyService.fallbackMsgId(record.topic(), record.partition(), record.offset());
         }
-        KafkaMdcHelper.put(record, msgId);
+        String idempotentKey = extractIdempotentKey(record);
+        if (idempotentKey == null) {
+            idempotentKey = msgId;
+        }
+        KafkaMdcHelper.put(record, msgId, idempotentKey, "");
         try {
             if (message == null) {
                 ack.acknowledge();
                 return;
             }
-            if (kafkaConsumeIdempotencyService.alreadyProcessed(msgId)) {
+            if (kafkaConsumeIdempotencyService.alreadyProcessed(idempotentKey)) {
                 ack.acknowledge();
                 return;
             }
@@ -60,7 +64,7 @@ public class BlogFeedConsumer {
                 String key = FEED_KEY + id;
                 stringRedisTemplate.opsForZSet().add(key, message.getBlogId().toString(), message.getTimestamp());
             }
-            kafkaConsumeIdempotencyService.markProcessed(msgId);
+            kafkaConsumeIdempotencyService.markProcessed(idempotentKey);
             ack.acknowledge();
         } catch (Exception e) {
             // 坏消息先 ack 避免堵分区；生产可配合 DLT（本阶段仅打日志）
@@ -76,5 +80,12 @@ public class BlogFeedConsumer {
             return null;
         }
         return new String(record.headers().lastHeader(KafkaMessageHeaders.MSG_ID).value(), StandardCharsets.UTF_8);
+    }
+
+    private static String extractIdempotentKey(ConsumerRecord<String, BlogFeedMessage> record) {
+        if (record.headers().lastHeader(KafkaMessageHeaders.IDEMPOTENT_KEY) == null) {
+            return null;
+        }
+        return new String(record.headers().lastHeader(KafkaMessageHeaders.IDEMPOTENT_KEY).value(), StandardCharsets.UTF_8);
     }
 }
