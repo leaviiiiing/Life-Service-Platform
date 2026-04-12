@@ -1,0 +1,25 @@
+server:
+  port: 8082
+
+spring:
+  application:
+    name: hmdp-agent-service
+  redis:
+    host: ${SPRING_REDIS_HOST:localhost}
+    port: ${SPRING_REDIS_PORT:6379}
+    password: ${SPRING_REDIS_PASSWORD:}
+    lettuce:
+      pool:
+        max-active: 16
+        max-idle: 8
+        min-idle: 2
+
+agent:
+  backend-base-url: ${AGENT_BACKEND_BASE_URL:http://localhost:8081}
+  rate-limit-per-minute: ${AGENT_RATE_LIMIT:120}
+
+logging:
+  level:
+    com.hmdp.agent: info
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] [%X{traceId:-}] %-5level %logger{36} - %msg%n"

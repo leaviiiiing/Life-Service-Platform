@@ -31,18 +31,20 @@ bash deploy/scripts/stop.sh
 
 ## 2. 默认端口
 
-- 前端：`80`
-- 后端：`8081`
+- 前端（Nginx）：`80`
+- 主后端：`8081`
+- **Agent 服务**：`8082`（浏览器一般通过 Nginx 访问 **`/api/agent/*`**，无需直连 8082）
 - MySQL：`3306`
 - Redis：`6379`
 - Kafka：`9092`
-- RabbitMQ：`5672`
-- RabbitMQ 管理台：`15672`
 
-## 3. 默认账号密码
+## 3. Nginx 与 Agent
+
+[`deploy/frontend/nginx.conf`](deploy/frontend/nginx.conf) 将 **`/api/agent/`** 转发到 `agent:8082`，其余 **`/api/`** 仍转发主后端。静态页 [`deploy/frontend/dist/agent.html`](deploy/frontend/dist/agent.html) 通过同源 `/api` 调用助手接口。
+
+## 4. 默认账号密码
 
 - MySQL root: `123456`
 - Redis: `123456`
-- RabbitMQ: `root / 123456`
 
 建议上线前在 `docker-compose.yml` 里改掉默认密码。
