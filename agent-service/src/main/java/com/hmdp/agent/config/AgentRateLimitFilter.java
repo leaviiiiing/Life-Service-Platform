@@ -21,9 +21,11 @@ import java.util.concurrent.TimeUnit;
  */
 @Slf4j
 @Component
+// TraceIdFilter 之后执行，便于日志里先有 traceId
 @Order(Ordered.HIGHEST_PRECEDENCE + 1)
 public class AgentRateLimitFilter extends OncePerRequestFilter {
 
+    /** 每 IP 每分钟一个计数键 */
     private static final String PREFIX = "agent:rl:";
 
     @Resource
@@ -36,6 +38,7 @@ public class AgentRateLimitFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
         int limit = agentProperties.getRateLimitPerMinute();
+        // limit<=0 表示关闭；非 agent 路径不统计
         if (limit <= 0 || !request.getRequestURI().startsWith("/api/agent/")) {
             filterChain.doFilter(request, response);
             return;
@@ -43,6 +46,7 @@ public class AgentRateLimitFilter extends OncePerRequestFilter {
         String ip = clientIp(request);
         String key = PREFIX + ip;
         Long n = stringRedisTemplate.opsForValue().increment(key);
+        // 首次命中时补 TTL，形成 1 分钟滑动窗口
         if (n != null && n == 1L) {
             stringRedisTemplate.expire(key, 1, TimeUnit.MINUTES);
         }
@@ -56,6 +60,7 @@ public class AgentRateLimitFilter extends OncePerRequestFilter {
         filterChain.doFilter(request, response);
     }
 
+    /** 经 Nginx 时优先取 X-Forwarded-For 第一段 */
     private static String clientIp(HttpServletRequest request) {
         String xff = request.getHeader("X-Forwarded-For");
         if (xff != null && !xff.isEmpty()) {

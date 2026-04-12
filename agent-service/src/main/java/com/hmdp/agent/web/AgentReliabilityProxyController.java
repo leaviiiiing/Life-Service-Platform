@@ -28,6 +28,7 @@ public class AgentReliabilityProxyController {
     @Resource
     private AgentProperties agentProperties;
 
+    /** 对齐主后端：查询 Kafka 失败审计（白名单接口，生产请收口） */
     @GetMapping(value = "/failed-logs", produces = MediaType.APPLICATION_JSON_VALUE)
     public String failedLogs(@RequestParam(defaultValue = "20") int limit) {
         String url = agentProperties.getBackendBaseUrl() + "/mq/compensation/kafka/failed-logs?limit=" + limit;
@@ -35,6 +36,7 @@ public class AgentReliabilityProxyController {
         return restTemplate.getForObject(url, String.class);
     }
 
+    /** 对齐主后端：按 orderId/userId/voucherId 安全重投 Kafka */
     @PostMapping(value = "/voucher/republish", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     public String voucherRepublish(@RequestBody Map<String, Object> body) {
         String url = agentProperties.getBackendBaseUrl() + "/mq/compensation/kafka/voucher/republish";

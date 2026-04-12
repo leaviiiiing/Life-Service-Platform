@@ -5,6 +5,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 
+/** Agent 独立进程入口，与主业务 life-service-platform 分离部署 */
 @SpringBootApplication
 @EnableConfigurationProperties(AgentProperties.class)
 public class AgentApplication {

@@ -55,6 +55,7 @@ public class FaqRuleService {
             return new Match("default", "请描述现象，例如：死信、PENDING、重放、幂等。", null);
         }
         String lower = text.toLowerCase();
+        // 关键词包含即命中，先注册先匹配
         for (Rule r : rules) {
             for (String k : r.keywords) {
                 if (k != null && (text.contains(k) || lower.contains(k.toLowerCase()))) {

@@ -36,6 +36,7 @@ Vue.component("footBar", {
       } else if (i === 1){
         location.href = "/"
       } else if (i === 3) {
+        // 运维助手（Agent），经 Nginx /api/agent 调对话接口
         location.href = "/agent.html"
       }
     }

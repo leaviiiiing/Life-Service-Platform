@@ -1,5 +1,7 @@
 # Agent 服务说明（hmdp-agent-service）
 
+<!-- 与 MQ 报告分文档，避免单篇过长；部署端口见 DEPLOY_DOCKER.md -->
+
 独立 Spring Boot 进程，与主业务后端（`life-service-platform`）分离，经 Nginx 将 **`/api/agent/*`** 转发至本服务（容器内端口 **8082**）。
 
 ## 职责

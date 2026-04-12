@@ -19,14 +19,18 @@ import java.util.concurrent.TimeUnit;
 @Service
 public class AgentSessionService {
 
+    /** Redis 键前缀，与 sessionId 拼接 */
     private static final String PREFIX = "agent:session:";
+    /** 单会话最多保留轮数，超出则丢弃最早一轮 */
     private static final int MAX_TURNS = 20;
+    /** 无续期时会话数据过期时间 */
     private static final int TTL_HOURS = 24;
 
     @Resource
     private StringRedisTemplate stringRedisTemplate;
 
     public String ensureSessionId(String sessionId) {
+        // 前端带上的 sessionId 可延续多轮；否则新建
         if (sessionId != null && !sessionId.trim().isEmpty()) {
             return sessionId.trim();
         }
@@ -45,6 +49,7 @@ public class AgentSessionService {
         t.set("user", userText);
         t.set("agent", agentReply);
         turns.add(t);
+        // 控制单 key 体积，避免无限增长
         while (turns.size() > MAX_TURNS) {
             turns.remove(0);
         }
@@ -71,6 +76,7 @@ public class AgentSessionService {
 
     private JSONObject readRoot(String key) {
         String s = stringRedisTemplate.opsForValue().get(key);
+        // 无历史则空对象，由上层补 turns
         if (s == null || s.isEmpty()) {
             return new JSONObject();
         }

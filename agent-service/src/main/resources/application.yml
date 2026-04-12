@@ -1,3 +1,4 @@
+# 独立端口，避免与主后端 8081 冲突；Docker 映射见 docker-compose
 server:
   port: 8082
 
@@ -7,6 +8,7 @@ spring:
   redis:
     host: ${SPRING_REDIS_HOST:localhost}
     port: ${SPRING_REDIS_PORT:6379}
+    # 空串表示无密码；Docker 与主站共用 redis 时需与主配置一致
     password: ${SPRING_REDIS_PASSWORD:}
     lettuce:
       pool:
@@ -14,8 +16,10 @@ spring:
         max-idle: 8
         min-idle: 2
 
+# 编排代理：调用主后端 MQ 补偿等；compose 内为 http://backend:8081
 agent:
   backend-base-url: ${AGENT_BACKEND_BASE_URL:http://localhost:8081}
+  # 0 表示关闭限流（仅建议压测/排障时）
   rate-limit-per-minute: ${AGENT_RATE_LIMIT:120}
 
 logging:

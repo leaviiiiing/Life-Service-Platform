@@ -27,6 +27,7 @@ public class AgentChatController {
 
     @PostMapping("/chat")
     public Map<String, Object> chat(@RequestBody ChatRequest req) {
+        // 先落会话 id，再规则匹配，最后把本轮问答写入 Redis 便于后续扩展「上下文」
         String sid = agentSessionService.ensureSessionId(req.getSessionId());
         FaqRuleService.Match m = faqRuleService.match(req.getText());
         agentSessionService.append(sid, req.getText(), m.reply);
@@ -41,6 +42,7 @@ public class AgentChatController {
 
     @Data
     public static class ChatRequest {
+        /** 可选；不传则服务端生成并在响应里带回 */
         private String sessionId;
         private String text;
     }

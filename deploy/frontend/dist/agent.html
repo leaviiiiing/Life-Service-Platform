@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- 独立静态页，经 Nginx /api/agent/* 访问 agent-service；sessionId 见脚本 localStorage -->
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
@@ -43,6 +44,7 @@
 <script src="./js/element.js"></script>
 <script src="./js/common.js"></script>
 <script>
+  // axios.defaults.baseURL 为 /api，故 POST /agent/chat 即 /api/agent/chat
   const STORAGE_KEY = 'agentSessionId';
   new Vue({
     el: '#app',
