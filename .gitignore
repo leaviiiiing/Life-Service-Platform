@@ -1,4 +1,7 @@
 HELP.md
+# 项目文档目录（本地维护，不纳入版本库）
+/docs/
+
 target/
 !.mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
