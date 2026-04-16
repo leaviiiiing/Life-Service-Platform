@@ -1,7 +1,7 @@
 package com.hmdp.mq.kafka;
 
 import com.hmdp.entity.MqKafkaLog;
-import com.hmdp.service.MqKafkaLogService;
+import com.hmdp.service.IMqKafkaLogService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -16,7 +16,7 @@ import javax.annotation.Resource;
 public class MqKafkaCompensationScheduler {
 
     @Resource
-    private MqKafkaLogService mqKafkaLogService;
+    private IMqKafkaLogService mqKafkaLogService;
 
     @Scheduled(fixedDelayString = "${mq.compensation.scan-ms:300000}")
     public void logFailedAuditCount() {

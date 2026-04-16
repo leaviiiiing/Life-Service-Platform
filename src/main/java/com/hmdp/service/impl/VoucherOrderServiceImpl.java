@@ -8,7 +8,7 @@ import com.hmdp.service.IVoucherOrderService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.hmdp.mq.kafka.KafkaMessageHeaders;
 import com.hmdp.mq.kafka.KafkaTopics;
-import com.hmdp.service.MqKafkaLogService;
+import com.hmdp.service.IMqKafkaLogService;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.crypto.digest.DigestUtil;
 import com.hmdp.utils.RedisIdWorker;
@@ -53,7 +53,7 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
     private KafkaTemplate<String, Object> kafkaTemplate;
 
     @Resource
-    private MqKafkaLogService mqKafkaLogService;
+    private IMqKafkaLogService mqKafkaLogService;
 
     private static final DefaultRedisScript<Long> SECKILL_SCRIPT;
     static{

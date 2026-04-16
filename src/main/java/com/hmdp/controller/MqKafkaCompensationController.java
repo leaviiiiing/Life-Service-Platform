@@ -2,7 +2,7 @@ package com.hmdp.controller;
 
 import com.hmdp.dto.Result;
 import com.hmdp.dto.VoucherOrderRepublishRequest;
-import com.hmdp.service.MqKafkaCompensationService;
+import com.hmdp.service.IMqKafkaCompensationService;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -20,7 +20,7 @@ import javax.annotation.Resource;
 public class MqKafkaCompensationController {
 
     @Resource
-    private MqKafkaCompensationService mqKafkaCompensationService;
+    private IMqKafkaCompensationService mqKafkaCompensationService;
 
     @GetMapping("/failed-logs")
     public Result listFailedLogs(@RequestParam(defaultValue = "20") int limit) {

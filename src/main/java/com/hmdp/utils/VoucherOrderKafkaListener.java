@@ -5,7 +5,7 @@ import com.hmdp.mq.kafka.KafkaConsumeIdempotencyService;
 import com.hmdp.mq.kafka.KafkaMdcHelper;
 import com.hmdp.mq.kafka.KafkaMessageHeaders;
 import com.hmdp.mq.kafka.KafkaTopics;
-import com.hmdp.service.MqKafkaLogService;
+import com.hmdp.service.IMqKafkaLogService;
 import com.hmdp.service.impl.VoucherOrderServiceImpl;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -37,7 +37,7 @@ public class VoucherOrderKafkaListener {
     private KafkaTemplate<String, Object> kafkaTemplate;
 
     @Resource
-    private MqKafkaLogService mqKafkaLogService;
+    private IMqKafkaLogService mqKafkaLogService;
 
     @Resource
     private KafkaConsumeIdempotencyService kafkaConsumeIdempotencyService;
