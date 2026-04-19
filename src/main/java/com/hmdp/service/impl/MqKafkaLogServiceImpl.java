@@ -1,8 +1,9 @@
-package com.hmdp.service;
+package com.hmdp.service.impl;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.hmdp.entity.MqKafkaLog;
 import com.hmdp.mapper.MqKafkaLogMapper;
+import com.hmdp.service.IMqKafkaLogService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -13,8 +14,9 @@ import java.time.LocalDateTime;
  */
 @Slf4j
 @Service
-public class MqKafkaLogService extends ServiceImpl<MqKafkaLogMapper, MqKafkaLog> {
+public class MqKafkaLogServiceImpl extends ServiceImpl<MqKafkaLogMapper, MqKafkaLog> implements IMqKafkaLogService {
 
+    @Override
     public void logSendSuccess(String msgId, String bizType, String bizKey, String topic, Integer partition, long offset) {
         MqKafkaLog row = new MqKafkaLog();
         row.setMsgId(msgId);
@@ -29,6 +31,7 @@ public class MqKafkaLogService extends ServiceImpl<MqKafkaLogMapper, MqKafkaLog>
         save(row);
     }
 
+    @Override
     public void logSendFailed(String msgId, String bizType, String bizKey, String topic, String errorMsg) {
         MqKafkaLog row = new MqKafkaLog();
         row.setMsgId(msgId);
@@ -42,6 +45,7 @@ public class MqKafkaLogService extends ServiceImpl<MqKafkaLogMapper, MqKafkaLog>
         save(row);
     }
 
+    @Override
     public void logConsumeFailed(String msgId, String bizType, String bizKey, String topic, Integer partition,
                                  Long offset, String errorMsg) {
         MqKafkaLog row = new MqKafkaLog();
@@ -58,6 +62,7 @@ public class MqKafkaLogService extends ServiceImpl<MqKafkaLogMapper, MqKafkaLog>
         save(row);
     }
 
+    @Override
     public void logDlt(String msgId, String bizType, String bizKey, String topic, String errorMsg) {
         MqKafkaLog row = new MqKafkaLog();
         row.setMsgId(msgId);

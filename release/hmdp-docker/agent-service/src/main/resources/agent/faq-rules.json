@@ -1,0 +1,24 @@
+{
+  "rules": [
+    {
+      "id": "dlq",
+      "keywords": ["死信", "DLQ", "dlq"],
+      "hint": "消费失败会 basicNack(requeue=false)，消息进入 voucher.order.dlq；请查 Rabbit 管理台与 tb_mq_message_log 中 IN_DLQ。修复业务后可对 msgId 使用 /api/agent/reliability/replay 或清理后重发。"
+    },
+    {
+      "id": "pending",
+      "keywords": ["PENDING", "pending", "卡住"],
+      "hint": "长时间 PENDING：先看 Broker confirm 是否失败(BROKER_FAIL)；补偿任务会扫描超时 PENDING 并重投，retry_count 会递增。也可直接调主服务流水核对。"
+    },
+    {
+      "id": "idempotent",
+      "keywords": ["幂等", "重复", "重复消费"],
+      "hint": "订单消费幂等键为 mq:idempotent:voucher_order:{orderId}；已消费成功再重放会被跳过。若确需重处理需运维删 Redis 键或改业务策略。"
+    },
+    {
+      "id": "queue_migrate",
+      "keywords": ["队列", "声明失败", "x-dead-letter"],
+      "hint": "若旧 voucher.order.queue 无死信参数，需在维护窗口删除旧队列后重启应用以声明带 DLX 的新队列。"
+    }
+  ]
+}
