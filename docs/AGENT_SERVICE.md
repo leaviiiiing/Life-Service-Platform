@@ -1,12 +1,14 @@
 # Agent 服务说明（hmdp-agent-service）
 
+**源码级串讲（与其它「代码详解」文档同风格）**：见 **[`AGENT_CODE_GUIDE.md`](./AGENT_CODE_GUIDE.md)**。
+
 <!-- 与 MQ 报告分文档，避免单篇过长；部署端口见 DEPLOY_DOCKER.md -->
 
-独立 Spring Boot 进程，与主业务后端（`life-service-platform`）分离，经 Nginx 将 **`/api/agent/*`** 转发至本服务（容器内端口 **8082**）。
+独立 Spring Boot 进程，与 **消费社交生活服务平台** 主业务后端分离（主工程 Maven 名 `life-service-platform`），经 Nginx 将 **`/api/agent/*`** 转发至本服务（容器内端口 **8082**）。
 
 ## 职责
 
-- **对话**：`POST /api/agent/chat`，规则 FAQ（`agent-service/src/main/resources/agent/faq-rules.json`）+ Redis 会话。
+- **对话**：`POST /api/agent/chat`，**关键词规则**（`agent/faq-rules.json`）优先；未命中时若配置了 **`AGENT_LLM_API_KEY`** 与 **`AGENT_LLM_MODEL`** 则调用 **OpenAI 兼容**大模型接口 + Redis 会话；响应多字段 **`source`**：`rule` | `llm` | `fallback`。
 - **MQ 排障代理**：将下列路径转发到主后端（`AGENT_BACKEND_BASE_URL`，Docker 内默认 `http://backend:8081`）：
   - `GET /api/agent/reliability/failed-logs?limit=` → `GET /mq/compensation/kafka/failed-logs`
   - `POST /api/agent/reliability/voucher/republish` → `POST /mq/compensation/kafka/voucher/republish`
@@ -20,6 +22,10 @@
 | `SPRING_REDIS_HOST` / `PORT` / `PASSWORD` | 与主站共用 Redis 时可同 compose 中的 `redis` 服务 |
 | `AGENT_BACKEND_BASE_URL` | 主后端根 URL，无尾斜杠，如 `http://backend:8081` |
 | `AGENT_RATE_LIMIT` | 每分钟每 IP 请求 `/api/agent` 上限，0 不限制 |
+| `AGENT_LLM_API_KEY` | 大模型 API Key（**勿提交 Git**）；未配置或未配 `AGENT_LLM_MODEL` 时未命中规则仅用默认文案 |
+| `AGENT_LLM_MODEL` | 模型名或服务商接入点 ID（如 `ep-xxxx`） |
+| `AGENT_LLM_BASE_URL` | 可选，Chat Completions 兼容根路径 |
+| `AGENT_LLM_ENABLED` | 可选，`false` 关闭 LLM 兜底 |
 
 ## 本地运行
 
@@ -50,10 +56,12 @@ java -jar target/hmdp-agent-service-0.0.1-SNAPSHOT.jar
 - 为 `/api/agent/*` 增加网关鉴权、内网 ACL 或独立 API Key；与 [`AgentRateLimitFilter`](../agent-service/src/main/java/com/hmdp/agent/config/AgentRateLimitFilter.java) 组合使用。
 - 将 MQ 补偿代理改为需登录：主后端去掉 `/mq/compensation/**` 白名单并在代理层转发 `Authorization`（需在 `RestTemplate` 侧显式带主站 token，当前为薄转发 JSON）。
 
-## Phase 3（可选扩展）
+## LLM（已实现）
 
-- **LLM**：OpenAI 兼容 HTTP，`FaqRuleService` 未命中时调用；密钥与超时走环境变量。
-- **RAG**：MQ 文档片段或向量检索接入同一 `POST /api/agent/chat` 管道。
+- **OpenAI 兼容** `POST .../chat/completions`，实现类 **`LlmChatService`**，编排见 **`AgentChatService`**。
+- **RAG**：可将文档片段拼入 `system` 或历史消息，接入同一管道（待扩展）。
+
+**安全**：API Key 仅通过环境变量注入；若密钥曾泄露，请在对应服务商控制台**轮换**。
 
 ## 与 MQ 文档的关系
 

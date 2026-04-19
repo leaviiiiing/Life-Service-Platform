@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0">
-  <title>运维助手 - Life-Service-Platform</title>
+  <title>运维助手 - 消费社交生活服务平台</title>
   <link rel="stylesheet" href="./css/element.css">
   <style>
     body { margin: 0; background: #f5f6fa; }
@@ -22,7 +22,7 @@
 <body>
 <div id="app" class="agent-wrap">
   <div class="agent-head">
-    <span style="font-weight:600;">运维助手</span>
+    <span style="font-weight:600;">运维助手 · 消费社交生活服务平台</span>
     <a href="/">回首页</a>
   </div>
   <div class="msg-list">
@@ -74,7 +74,10 @@
             this.sessionId = data.sessionId;
             localStorage.setItem(STORAGE_KEY, data.sessionId);
           }
-          this.messages.push({ role: 'bot', text: data.reply || '(无回复)' });
+          var src = ({ rule: '规则', llm: '模型', fallback: '默认' })[data.source] || data.source;
+          var reply = data.reply || '(无回复)';
+          if (src) reply += ' · ' + src;
+          this.messages.push({ role: 'bot', text: reply });
         }).catch((err) => {
           this.messages.push({ role: 'bot', text: '请求失败：' + (err || '网络错误') });
         }).finally(() => {

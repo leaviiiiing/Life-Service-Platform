@@ -14,7 +14,7 @@ import java.io.IOException;
 import java.util.UUID;
 
 /**
- * HTTP 链路 traceId：与主站一致可传 X-Trace-Id，否则生成并回写响应头，供日志 pattern 使用
+ * HTTP 链路 traceId：与主站一致可传 X-Trace-Id，否则生成 UUID；写入 MDC 与响应头，供日志 pattern 使用。
  */
 @Component
 @Order(Ordered.HIGHEST_PRECEDENCE)
@@ -26,6 +26,7 @@ public class TraceIdFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
+        // 读取请求头或生成 traceId
         String tid = request.getHeader(HEADER_TRACE_ID);
         if (tid == null || tid.trim().isEmpty()) {
             tid = UUID.randomUUID().toString().replace("-", "");
@@ -35,6 +36,7 @@ public class TraceIdFilter extends OncePerRequestFilter {
         try {
             filterChain.doFilter(request, response);
         } finally {
+            // 避免线程池复用时串号
             MDC.remove(MDC_TRACE_ID);
         }
     }

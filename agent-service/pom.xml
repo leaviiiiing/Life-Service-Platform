@@ -13,7 +13,7 @@
     <artifactId>hmdp-agent-service</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>hmdp-agent-service</name>
-    <description>Strategy orchestration and troubleshooting proxy (MQ reliability APIs + rule-based FAQ)</description>
+    <description>消费社交生活服务平台 - Agent：MQ 排障代理、规则/LLM 运维助手</description>
     <properties>
         <java.version>1.8</java.version>
     </properties>

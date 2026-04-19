@@ -14,7 +14,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * 静态规则库（关键词命中），后续可替换为向量检索/RAG，接口保持不变
+ * 静态 FAQ 规则库：从 classpath {@code agent/faq-rules.json} 加载，按关键词子串匹配（先注册先命中）。
+ * <p>
+ * 后续可替换为向量检索 / RAG，对外仍通过 {@link #match(String)} 返回 {@link Match}，上层无感。
  */
 @Slf4j
 @Service
@@ -22,6 +24,9 @@ public class FaqRuleService {
 
     private final List<Rule> rules = new ArrayList<>();
 
+    /**
+     * 启动时加载 JSON；失败则日志报错，运行时仅走 {@code default} 提示。
+     */
     @PostConstruct
     public void load() {
         try {
@@ -50,6 +55,9 @@ public class FaqRuleService {
         }
     }
 
+    /**
+     * 对用户输入做关键词匹配；空输入与未命中均返回 {@code ruleId = default}，由 {@link AgentChatService} 决定是否再走 LLM。
+     */
     public Match match(String text) {
         if (text == null || text.trim().isEmpty()) {
             return new Match("default", "请描述现象，例如：死信、PENDING、重放、幂等。", null);
@@ -68,13 +76,16 @@ public class FaqRuleService {
 
     private static class Rule {
         String id;
+        /** 命中后返回给前端的说明文案 */
         String hint;
         List<String> keywords = new ArrayList<>();
     }
 
+    /** 单次匹配结果：{@code ruleId} 为 default 表示未命中自定义规则 */
     public static class Match {
         public final String ruleId;
         public final String reply;
+        /** 命中的关键词，未命中为 null */
         public final String keyword;
 
         public Match(String ruleId, String reply, String keyword) {

@@ -13,6 +13,8 @@ import cn.hutool.core.util.StrUtil;
 import cn.hutool.crypto.digest.DigestUtil;
 import com.hmdp.utils.RedisIdWorker;
 import com.hmdp.utils.UserHolder;
+
+import java.time.LocalDateTime;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
@@ -92,9 +94,13 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
         //一人一单
         Long userId = voucherOrder.getUserId();
         Long voucherId = voucherOrder.getVoucherId();
+        // 已取消、已退款不算「已买过」，否则支付超时关单后无法再次秒杀
         int count = Math.toIntExact(query()
-                .eq("user_id", userId).eq("voucher_id", voucherId).count());
-        if(count>0){
+                .eq("user_id", userId)
+                .eq("voucher_id", voucherId)
+                .notIn("status", 4, 6)
+                .count());
+        if (count > 0) {
             log.error("该用户已经购买过一次！");
             return;
         }
@@ -109,7 +115,10 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
             return;
         }
 
-        //创建订单
+        // 创建订单：默认未支付，由定时任务在超时后关单并回补库存（见 VoucherOrderPayTimeoutScheduler）
+        if (voucherOrder.getStatus() == null) {
+            voucherOrder.setStatus(1);
+        }
         save(voucherOrder);
 
     }
@@ -143,7 +152,7 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
             return Result.fail(result==1?"库存不足！":"无法重复下单！");
         }
 
-        //发送消息到 Kafka（原 RabbitMQ 队列已移除）
+        //发送消息到 Kafka
         VoucherOrder voucherOrder = new VoucherOrder();
         voucherOrder.setId(orderId);
         voucherOrder.setUserId(userId);
@@ -173,6 +182,44 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
         }
 
         return Result.ok(orderId);
+    }
+
+    /** tb_voucher_order.status：未支付 / 已支付 */
+    private static final int ORDER_UNPAID = 1;
+    private static final int ORDER_PAID = 2;
+
+    @Override
+    public Result paySuccess(Long orderId) {
+        if (orderId == null) {
+            return Result.fail("orderId 不能为空");
+        }
+        Long userId = UserHolder.getUser().getId();
+        VoucherOrder order = getById(orderId);
+        if (order == null) {
+            return Result.fail("订单不存在");
+        }
+        if (!userId.equals(order.getUserId())) {
+            return Result.fail("无权操作该订单");
+        }
+        if (!Integer.valueOf(ORDER_UNPAID).equals(order.getStatus())) {
+            return Result.fail("订单非未支付状态，无法确认支付");
+        }
+
+        // TODO：对接真实支付渠道
+        //  - 若为异步回调：校验支付平台签名、金额、商户订单号与 orderId 映射、防重放（nonce）
+        //  - 若余额支付：扣减用户余额表/钱包、事务内与订单状态一起提交
+        //  - 记录支付流水、对账批次号
+
+        boolean ok = lambdaUpdate()
+                .set(VoucherOrder::getStatus, ORDER_PAID)
+                .set(VoucherOrder::getPayTime, LocalDateTime.now())
+                .eq(VoucherOrder::getId, orderId)
+                .eq(VoucherOrder::getStatus, ORDER_UNPAID)
+                .update();
+        if (!ok) {
+            return Result.fail("支付确认失败，请重试");
+        }
+        return Result.ok();
     }
 
 }

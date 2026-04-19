@@ -103,6 +103,9 @@ services:
       SPRING_REDIS_PORT: 6379
       SPRING_REDIS_PASSWORD: 123456
       AGENT_BACKEND_BASE_URL: http://backend:8081
+      # 大模型 API Key（勿将真实密钥写入仓库；与 AGENT_LLM_MODEL 一并配置）
+      AGENT_LLM_API_KEY: ${AGENT_LLM_API_KEY:-}
+      AGENT_LLM_MODEL: ${AGENT_LLM_MODEL:-}
       TZ: Asia/Shanghai
     ports:
       - "8082:8082"

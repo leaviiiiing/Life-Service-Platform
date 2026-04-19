@@ -17,6 +17,8 @@ public class RedisConstants {
     public static final Long LOCK_SHOP_TTL = 10L;
 
     public static final String SECKILL_STOCK_KEY = "seckill:stock:";
+    /** 与 seckill.lua 中 orderKey 一致：已下单用户 Set */
+    public static final String SECKILL_ORDER_KEY = "seckill:order:";
     /** HTTP Idempotency-Key 与 user/voucher 绑定，存已受理的 orderId */
     public static final String SECKILL_IDEM_KEY = "seckill:idem:";
     public static final String BLOG_LIKED_KEY = "blog:liked:";

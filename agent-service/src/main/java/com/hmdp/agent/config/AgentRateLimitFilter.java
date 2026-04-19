@@ -17,11 +17,10 @@ import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
 /**
- * 简单网关限流：按 IP 滑动窗口计数（与计划「告警/兜底」前置保护一致）
+ * 简单网关限流：对 /api/agent/* 按客户端 IP 做每分钟计数，超限返回 429。
  */
 @Slf4j
 @Component
-// TraceIdFilter 之后执行，便于日志里先有 traceId
 @Order(Ordered.HIGHEST_PRECEDENCE + 1)
 public class AgentRateLimitFilter extends OncePerRequestFilter {
 
@@ -37,6 +36,7 @@ public class AgentRateLimitFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
+        // TraceIdFilter 同线程先执行，日志里已有 traceId
         int limit = agentProperties.getRateLimitPerMinute();
         // limit<=0 表示关闭；非 agent 路径不统计
         if (limit <= 0 || !request.getRequestURI().startsWith("/api/agent/")) {

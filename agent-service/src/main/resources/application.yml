@@ -21,6 +21,14 @@ agent:
   backend-base-url: ${AGENT_BACKEND_BASE_URL:http://localhost:8081}
   # 0 表示关闭限流（仅建议压测/排障时）
   rate-limit-per-minute: ${AGENT_RATE_LIMIT:120}
+  # 大模型（OpenAI 兼容 /chat/completions）；密钥与模型名务必用环境变量，勿提交仓库
+  llm:
+    enabled: ${AGENT_LLM_ENABLED:true}
+    api-key: ${AGENT_LLM_API_KEY:}
+    base-url: ${AGENT_LLM_BASE_URL:https://ark.cn-beijing.volces.com/api/v3}
+    model: ${AGENT_LLM_MODEL:}
+    timeout-ms: ${AGENT_LLM_TIMEOUT_MS:90000}
+    temperature: ${AGENT_LLM_TEMPERATURE:0.6}
 
 logging:
   level:

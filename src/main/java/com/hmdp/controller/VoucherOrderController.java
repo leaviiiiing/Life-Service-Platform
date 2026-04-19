@@ -26,4 +26,12 @@ public class VoucherOrderController {
 
         return voucherOrderService.seckillVoucher(voucherId, idempotencyKey);
     }
+
+    /**
+     * 支付成功：将当前用户名下「未支付」订单更新为已支付（渠道验签、第三方回调等见服务层 TODO）。
+     */
+    @PostMapping("pay/{orderId}")
+    public Result paySuccess(@PathVariable("orderId") Long orderId) {
+        return voucherOrderService.paySuccess(orderId);
+    }
 }

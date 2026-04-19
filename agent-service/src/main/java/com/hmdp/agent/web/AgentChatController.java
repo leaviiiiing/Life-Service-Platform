@@ -1,7 +1,6 @@
 package com.hmdp.agent.web;
 
-import com.hmdp.agent.service.AgentSessionService;
-import com.hmdp.agent.service.FaqRuleService;
+import com.hmdp.agent.service.AgentChatService;
 import lombok.Data;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -13,37 +12,36 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * 故障规则库对话 + Redis 会话（与计划「RAG/记忆」最小可用版）
+ * 运维助手对话：关键词规则优先，未命中可走 LLM；会话存 Redis。
  */
 @RestController
 @RequestMapping("/api/agent")
 public class AgentChatController {
 
     @Resource
-    private FaqRuleService faqRuleService;
+    private AgentChatService agentChatService;
 
-    @Resource
-    private AgentSessionService agentSessionService;
-
+    /**
+     * 多轮对话；响应含 source：rule（规则命中）| llm | fallback（默认文案或 LLM 失败）
+     */
     @PostMapping("/chat")
     public Map<String, Object> chat(@RequestBody ChatRequest req) {
-        // 先落会话 id，再规则匹配，最后把本轮问答写入 Redis 便于后续扩展「上下文」
-        String sid = agentSessionService.ensureSessionId(req.getSessionId());
-        FaqRuleService.Match m = faqRuleService.match(req.getText());
-        agentSessionService.append(sid, req.getText(), m.reply);
-        Map<String, Object> out = new HashMap<>(8);
+        AgentChatService.ChatOutcome o = agentChatService.chat(req.getSessionId(), req.getText());
+        Map<String, Object> out = new HashMap<>(10);
         out.put("success", true);
-        out.put("sessionId", sid);
-        out.put("ruleId", m.ruleId);
-        out.put("reply", m.reply);
-        out.put("matchedKeyword", m.keyword);
+        out.put("sessionId", o.getSessionId());
+        out.put("ruleId", o.getRuleId());
+        out.put("reply", o.getReply());
+        out.put("matchedKeyword", o.getMatchedKeyword());
+        out.put("source", o.getSource());
         return out;
     }
 
     @Data
     public static class ChatRequest {
-        /** 可选；不传则服务端生成并在响应里带回 */
+        /** 可选；不传则服务端生成 UUID 并在响应里带回 */
         private String sessionId;
+        /** 用户输入 */
         private String text;
     }
 }

@@ -14,21 +14,26 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 /**
- * 会话：最近若干轮问答落在 Redis，供排障上下文（轻量「记忆」）
+ * 多轮会话：以 JSON 存于 Redis，供 {@link LlmChatService} 拉取历史上下文。
+ * <p>
+ * 仅保留最近 {@link #MAX_TURNS} 轮，并设置 TTL，避免单 key 无限膨胀。
  */
 @Service
 public class AgentSessionService {
 
-    /** Redis 键前缀，与 sessionId 拼接 */
+    /** Redis 键：{@code agent:session:} + sessionId */
     private static final String PREFIX = "agent:session:";
     /** 单会话最多保留轮数，超出则丢弃最早一轮 */
     private static final int MAX_TURNS = 20;
-    /** 无续期时会话数据过期时间 */
+    /** 每次写入刷新过期时间 */
     private static final int TTL_HOURS = 24;
 
     @Resource
     private StringRedisTemplate stringRedisTemplate;
 
+    /**
+     * 校验或生成会话 id：前端传入则复用，否则生成无横线 UUID。
+     */
     public String ensureSessionId(String sessionId) {
         // 前端带上的 sessionId 可延续多轮；否则新建
         if (sessionId != null && !sessionId.trim().isEmpty()) {
@@ -37,6 +42,9 @@ public class AgentSessionService {
         return UUID.randomUUID().toString().replace("-", "");
     }
 
+    /**
+     * 追加一轮 user/agent，写入后裁剪轮数并续期 TTL。
+     */
     public void append(String sessionId, String userText, String agentReply) {
         String key = PREFIX + sessionId;
         JSONObject root = readRoot(key);
@@ -56,6 +64,9 @@ public class AgentSessionService {
         stringRedisTemplate.opsForValue().set(key, root.toString(), TTL_HOURS, TimeUnit.HOURS);
     }
 
+    /**
+     * 读取当前会话全部历史轮次（供本轮 LLM 请求前组装 messages，不含尚未 append 的本轮）。
+     */
     public List<TurnView> recentTurns(String sessionId) {
         String key = PREFIX + sessionId;
         JSONObject root = readRoot(key);
@@ -74,6 +85,7 @@ public class AgentSessionService {
         return list;
     }
 
+    /** 反序列化 Redis 中的根对象；无数据则返回空 JSON，由调用方补 turns */
     private JSONObject readRoot(String key) {
         String s = stringRedisTemplate.opsForValue().get(key);
         // 无历史则空对象，由上层补 turns
@@ -83,6 +95,7 @@ public class AgentSessionService {
         return JSONUtil.parseObj(s);
     }
 
+    /** 单轮问答视图，与 Redis 中 turns 数组元素一致 */
     @Data
     public static class TurnView {
         private String user;

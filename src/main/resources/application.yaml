@@ -42,6 +42,13 @@ mybatis-plus:
 mq:
   compensation:
     scan-ms: 300000
+# 未支付订单超时自动取消（秒杀异步落库订单默认 status=1）
+order:
+  pay-timeout:
+    enabled: true
+    minutes: 15
+    batch-size: 100
+    scan-ms: 60000
 logging:
   level:
     com.hmdp: debug

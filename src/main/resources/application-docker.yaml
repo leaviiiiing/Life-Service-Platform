@@ -41,6 +41,12 @@ mybatis-plus:
 mq:
   compensation:
     scan-ms: 300000
+order:
+  pay-timeout:
+    enabled: true
+    minutes: 15
+    batch-size: 100
+    scan-ms: 60000
 logging:
   level:
     com.hmdp: info
